@@ -4,7 +4,7 @@ Norm = p.L * p.Pt;
 lambda = (lambda_low + lambda_high) / 2;
 
 X = (Q + lambda * eye(p.N, p.N))^(-1) * G;
-NormTemp = norm(X * X', 'fro')^2;
+NormTemp = norm(X, 'fro')^2;
 
 idx = 0;
 idxarray = 0;
@@ -17,14 +17,14 @@ while abs(NormTemp - Norm) >= 1e-6
         lambda = (lambda_low + lambda_high) / 2;
         
         X = (Q + lambda * eye(p.N, p.N))^(-1) * G;
-        NormTemp = norm(X * X' , 'fro')^2;
+        NormTemp = norm(X, 'fro')^2;
     
     else
         lambda_low = lambda;
         lambda = (lambda_low + lambda_high) / 2;
         
         X = (Q + lambda * eye(p.N, p.N))^(-1) * G;
-        NormTemp = norm(X * X' , 'fro')^2;
+        NormTemp = norm(X, 'fro')^2;
         
     end
     
