@@ -13,10 +13,11 @@ p.SNR = p.Pt ./ p.N0;
 p.SNRdB = 10 * log(p.SNR) / log(10);    % SNR Settings
 
 p.theta = pi/5;
-p.alphadB = 19;
+p.alphadB = -19;
 p.alpha = 10.^(p.alphadB / 10);
+p.falsealarm = 1e-7;
 
-p.rho = 0 : 0.1 : 1;                    % Weighting Factor
+p.rho = [0.01, 0.1 : 0.1 : 0.9, 0.99];                    % Weighting Factor
 
 % Simulation Settings
 p.iterations = 1000;
@@ -24,7 +25,7 @@ p.iterations = 1000;
 OmniRateArray = zeros(p.iterations, length(p.rho), length(p.K));
 OmniProbabilityArray = zeros(p.iterations, length(p.rho), length(p.K));
 
-for idx = 1 : length(iterations)
+for idx = 1 : p.iterations
     for jdx = 1 : length(p.rho)
         for kdx = 1 : length(p.K)
             % Channel Realization
@@ -55,23 +56,46 @@ for idx = 1 : length(iterations)
             
             % Communication Rate
             OmniETradeoff = H * OmniXTradeoff - S;
-            OmnigammaTradeoff =  1 / (mean(abs(OmniETradeoff).^2, 2) + p.N0);
+            OmnigammaTradeoff =  1 ./ (mean(abs(OmniETradeoff).^2, 2) + p.N0);
             
-            for ldx = 1 : p.K
-                OmniRateArray(idx, jdx, kdx) = OmniRateArray(idx, jdx, kdx) + log(1 + OmnigammaTradeoff(kdx)) / log(2);
+            temp = p.K(kdx);
+            for ldx = 1 : temp
+                OmniRateArray(idx, jdx, kdx) = OmniRateArray(idx, jdx, kdx) + log(1 + OmnigammaTradeoff(ldx)) ./ log(2);
             end
             
+            OmniRateArray(idx, jdx, kdx) = OmniRateArray(idx, jdx, kdx) / p.K(kdx);
+            
             % Detection Probability
+            a = zeros(p.N, 1);
+            for ldx = 1 : length(p.N)
+                a(ldx, 1) = exp(1i * pi * (ldx - 1) * sin(p.theta));
+            end
             
+            % Noncentrality needs to be fixed (line 75)
+            p.noncentrality = p.alpha * abs(a' * (1/p.L) * (OmniXTradeoff * OmniXTradeoff') * a).^2;
             
+            delta = chi2inv(1 - p.falsealarm, 2);
+            OmniProbabilityArray(idx, jdx, kdx) = 1 - ncx2cdf(delta, 2, p.noncentrality);
         end
     end
 end
-    
-    
-    
-    
-end
 
+OmniRate = mean(real(OmniRateArray));
+OmniProbability = mean(real(OmniProbabilityArray));
 
+OmniRate1 = OmniRate(:,:,1);
+OmniRate2 = OmniRate(:,:,2);
+OmniRate3 = OmniRate(:,:,3);
+
+OmniProbability1 = OmniProbability(:,:,1);
+OmniProbability2 = OmniProbability(:,:,2);
+OmniProbability3 = OmniProbability(:,:,3);
+    
+figure
+plot(OmniRate1, OmniProbability1, OmniRate2, OmniProbability2, OmniRate3, OmniProbability3, 'LineWidth', 1.5);
+xlabel('Average Achievable Rate');
+ylabel('Detection Probability');
+legend('K=25', 'K=30', 'K=35', 'Location', 'southwest');
+grid on
+    
 end

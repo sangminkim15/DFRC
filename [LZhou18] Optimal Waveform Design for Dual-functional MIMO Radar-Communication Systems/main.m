@@ -56,12 +56,12 @@ for idx = 1 : p.iterations
     for jdx = 1 : length(p.N0dB)
         OmniEStrict = H * OmniXStrict - S;
         OmniETradeoff = H * OmniXTradeoff - S;
-        OmnigammaStrict = 1 / (mean(abs(OmniEStrict).^2, 2) + p.N0(jdx));
-        OmnigammaTradeoff =  1 / (mean(abs(OmniETradeoff).^2, 2) + p.N0(jdx));
+        OmnigammaStrict = 1 ./ (mean(abs(OmniEStrict).^2, 2) + p.N0(jdx));
+        OmnigammaTradeoff =  1 ./ (mean(abs(OmniETradeoff).^2, 2) + p.N0(jdx));
         
         for kdx = 1 : p.K
-            OmniStrictCapacityArray(idx, jdx) = OmniStrictCapacityArray(idx, jdx) + log(1 + OmnigammaStrict(kdx)) / log(2);
-            OmniTradeoffCapacityArray(idx, jdx) = OmniTradeoffCapacityArray(idx, jdx) + log(1 + OmnigammaTradeoff(kdx)) / log(2);
+            OmniStrictCapacityArray(idx, jdx) = OmniStrictCapacityArray(idx, jdx) + (1/p.K) * log(1 + OmnigammaStrict(kdx)) / log(2);
+            OmniTradeoffCapacityArray(idx, jdx) = OmniTradeoffCapacityArray(idx, jdx) + (1/p.K) * log(1 + OmnigammaTradeoff(kdx)) / log(2);
         end
     end
     
