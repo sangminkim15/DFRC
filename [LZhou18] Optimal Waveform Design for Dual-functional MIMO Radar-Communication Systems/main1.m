@@ -13,7 +13,7 @@ p.SNR = p.Pt ./ p.N0;
 p.SNRdB = 10 * log(p.SNR) / log(10);    % SNR Settings
 
 p.theta = pi/5;
-p.alphadB = -19;
+p.alphadB = 5;
 p.alpha = 10.^(p.alphadB / 10);
 p.falsealarm = 1e-7;
 
