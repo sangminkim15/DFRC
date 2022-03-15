@@ -17,11 +17,11 @@ p.alphadB = -19;
 p.alpha = 10.^(p.alphadB / 10);
 p.falsealarm = 1e-7;
 
-p.rhodB = [-30, -20, -10 : 1 : -1, -0.5];
+p.rhodB = [-30, -25, -20, -15, -10 : 2 : -2, -1, -0.5];
 p.rho = 10.^(p.rhodB / 10);                     % Weighting Factor
 
 % Simulation Settings
-p.iterations = 1000;
+p.iterations = 5000;
 
 OmniRateArray = zeros(p.iterations, length(p.rho), length(p.K));
 OmniProbabilityArray = zeros(p.iterations, length(p.rho), length(p.K));

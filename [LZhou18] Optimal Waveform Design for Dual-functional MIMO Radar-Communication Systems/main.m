@@ -98,7 +98,7 @@ OmniTradeoffBP = 10 .* log(OmniTradeoffBP) / log(10);
 p.theta_deg = p.theta * (180/pi);
 
 figure
-plot(p.theta_deg, OmniStrictBP, 'r-', p.theta_deg, OmniTradeoffBP, 'r--', 'LineWidth', 1.5);
+plot(p.theta_deg, OmniStrictBP, 'b--', p.theta_deg, OmniTradeoffBP, 'b-', 'LineWidth', 1.5);
 xlabel('\theta (deg)');
 ylabel('Beampattern');
 xlim([-90 90]);
