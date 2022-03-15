@@ -13,11 +13,12 @@ p.SNR = p.Pt ./ p.N0;
 p.SNRdB = 10 * log(p.SNR) / log(10);    % SNR Settings
 
 p.theta = pi/5;
-p.alphadB = 5;
+p.alphadB = -19;
 p.alpha = 10.^(p.alphadB / 10);
 p.falsealarm = 1e-7;
 
-p.rho = [0.01, 0.1 : 0.1 : 0.9, 0.99];                    % Weighting Factor
+p.rhodB = [-30, -20, -10 : 1 : -1, -0.5];
+p.rho = 10.^(p.rhodB / 10);                     % Weighting Factor
 
 % Simulation Settings
 p.iterations = 1000;
@@ -67,12 +68,12 @@ for idx = 1 : p.iterations
             
             % Detection Probability
             a = zeros(p.N, 1);
-            for ldx = 1 : length(p.N)
+            for ldx = 1 : p.N
                 a(ldx, 1) = exp(1i * pi * (ldx - 1) * sin(p.theta));
             end
             
             % Noncentrality needs to be fixed (line 75)
-            p.noncentrality = p.alpha * abs(a' * (1/p.L) * (OmniXTradeoff * OmniXTradeoff') * a).^2;
+            p.noncentrality = p.alpha * p.L^2 * abs(a' * (1/p.L) * (OmniXTradeoff * OmniXTradeoff') * a);
             
             delta = chi2inv(1 - p.falsealarm, 2);
             OmniProbabilityArray(idx, jdx, kdx) = 1 - ncx2cdf(delta, 2, p.noncentrality);
@@ -92,7 +93,7 @@ OmniProbability2 = OmniProbability(:,:,2);
 OmniProbability3 = OmniProbability(:,:,3);
     
 figure
-plot(OmniRate1, OmniProbability1, OmniRate2, OmniProbability2, OmniRate3, OmniProbability3, 'LineWidth', 1.5);
+plot(OmniRate1, OmniProbability1, 'b-o', OmniRate2, OmniProbability2, 'k-x', OmniRate3, OmniProbability3, 'r-s', 'LineWidth', 1.5);
 xlabel('Average Achievable Rate');
 ylabel('Detection Probability');
 legend('K=25', 'K=30', 'K=35', 'Location', 'southwest');
