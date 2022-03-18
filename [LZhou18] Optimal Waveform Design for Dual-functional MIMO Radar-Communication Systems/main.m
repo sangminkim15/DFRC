@@ -83,7 +83,7 @@ OmniStrictCapacity = mean(OmniStrictCapacityArray);
 OmniTradeoffCapacity = mean(OmniTradeoffCapacityArray);
 
 figure
-plot(p.SNRdB, AWGNCapacity, 'r--v', p.SNRdB, OmniStrictCapacity, 'b-x', p.SNRdB, OmniTradeoffCapacity, 'b--o', 'LineWidth', 1.5);
+plot(p.SNRdB, AWGNCapacity, 'r--v', p.SNRdB, OmniStrictCapacity, 'k-x', p.SNRdB, OmniTradeoffCapacity, 'k--o', 'LineWidth', 1.5);
 xlabel('Transmit SNR (dB)');
 ylabel('Average Achievable Rate (bps/Hz/user)');
 legend('AWGN Capacity', 'Omni-Strict', 'Omni-Tradeoff (\rho = 0.1)', 'Location', 'northwest');
@@ -98,7 +98,7 @@ OmniTradeoffBP = 10 .* log(OmniTradeoffBP) / log(10);
 p.theta_deg = p.theta * (180/pi);
 
 figure
-plot(p.theta_deg, OmniStrictBP, 'b--', p.theta_deg, OmniTradeoffBP, 'b-', 'LineWidth', 1.5);
+plot(p.theta_deg, OmniStrictBP, 'r--', p.theta_deg, OmniTradeoffBP, 'k-', 'LineWidth', 1.5);
 xlabel('\theta (deg)');
 ylabel('Beampattern');
 xlim([-90 90]);
