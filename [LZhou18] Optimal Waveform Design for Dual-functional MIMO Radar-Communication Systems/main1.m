@@ -3,30 +3,51 @@ function [] = main1 ()
 % Figure 4
 
 % Parameter Settings
-p.K = 25 : 5 : 35;                      % # of Users
-p.N = 64;                               % # of Antennas per Each Users (ULA)
-p.L = 70;                               % # of Communication Frame
+p.K = 4 : 2 : 8;                        % # of Users
+p.N = 16;                               % # of Antennas per Each Users (ULA)
+p.L = 20;                               % # of Communication Frame
 p.Pt = 1;                               % Total Power Constraint
-p.N0dB = -5;                            % Noise Settings
+p.N0dB = -10;                           % Noise Settings
 p.N0 = 10.^(p.N0dB ./ 10);  
 p.SNR = p.Pt ./ p.N0;
 p.SNRdB = 10 * log(p.SNR) / log(10);    % SNR Settings
 
-p.theta = pi/5;
-p.alphadB = -19;
+% Radar Settings
+p.theta = -pi/2 : pi/180 : pi/2;        % Radar ULA Angle Settings
+p.theta_target = [-pi*10/180, -pi*5/180, 0, pi*5/180, pi*10/180];
+p.target_DoA = [-pi/3,0,pi/3];
+
+p.beam_width= 9;
+p.l=ceil((p.target_DoA + pi/2 * ones(1, length(p.target_DoA)))/(pi/180) + ones(1, length(p.target_DoA)));
+p.Pd_theta = zeros(length(p.theta), 1);
+
+for idx = 1:length(p.target_DoA)
+    p.Pd_theta(p.l(idx)-(p.beam_width-1)/2 : p.l(idx)+(p.beam_width-1)/2, 1) = ones(p.beam_width, 1);
+end
+
+p.c = 3e8;
+p.fc = 3.2e9;
+p.lambda = p.c / p.fc;
+p.spacing = p.lambda / 2;
+
+p.alphadB = -6;
 p.alpha = 10.^(p.alphadB / 10);
 p.falsealarm = 1e-7;
 
-p.rhodB = [-30, -25, -20, -15, -10 : 2 : -2, -1, -0.5];
-p.rho = 10.^(p.rhodB / 10);                     % Weighting Factor
+a = zeros(p.N, 1);
+for idx = 1 : p.N
+    a(idx, 1) = exp(1i * pi * (idx - ceil(p.N/2)) * sin(p.theta(127))); % p.theta = pi/5;
+end
+
+p.rho = [0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9];                     % Weighting Factor
 
 % Simulation Settings
-p.iterations = 5000;
+p.montecarlo = 1000;
 
-OmniRateArray = zeros(p.iterations, length(p.rho), length(p.K));
-OmniProbabilityArray = zeros(p.iterations, length(p.rho), length(p.K));
+OmniRateArray = zeros(p.montecarlo, length(p.rho), length(p.K));
+OmniProbabilityArray = zeros(p.montecarlo, length(p.rho), length(p.K));
 
-for idx = 1 : p.iterations
+for idx = 1 : p.montecarlo
     for jdx = 1 : length(p.rho)
         for kdx = 1 : length(p.K)
             % Channel Realization
@@ -53,27 +74,20 @@ for idx = 1 : p.iterations
             lambda_low = - min(diag(LAMBDA));
             lambda_high = - min(diag(LAMBDA)) + sqrt(p.N / p.Pt) * max(max(abs(P' * G)));
 
-            OmniXTradeoff = BisectionSearch(Q, G, lambda_low, lambda_high, p);
+            OmniXTradeoff = sqrt(p.N) * BisectionSearch(Q, G, lambda_low, lambda_high, p);
             
             % Communication Rate
-            OmniETradeoff = H * OmniXTradeoff - S;
+            OmniETradeoff = H * (OmniXTradeoff / sqrt(p.N)) - S;
             OmnigammaTradeoff =  1 ./ (mean(abs(OmniETradeoff).^2, 2) + p.N0);
             
             temp = p.K(kdx);
             for ldx = 1 : temp
                 OmniRateArray(idx, jdx, kdx) = OmniRateArray(idx, jdx, kdx) + log(1 + OmnigammaTradeoff(ldx)) ./ log(2);
             end
-            
             OmniRateArray(idx, jdx, kdx) = OmniRateArray(idx, jdx, kdx) / p.K(kdx);
             
-            % Detection Probability
-            a = zeros(p.N, 1);
-            for ldx = 1 : p.N
-                a(ldx, 1) = exp(1i * pi * (ldx - 1) * sin(p.theta));
-            end
-            
-            % Noncentrality needs to be fixed (line 75)
-            p.noncentrality = p.alpha * p.L^2 * abs(a' * (1/p.L) * (OmniXTradeoff * OmniXTradeoff') * a);
+            Rs = OmniXTradeoff * OmniXTradeoff' / p.L;
+            p.noncentrality = p.alpha * abs(a' * Rs.' * a)^2;
             
             delta = chi2inv(1 - p.falsealarm, 2);
             OmniProbabilityArray(idx, jdx, kdx) = 1 - ncx2cdf(delta, 2, p.noncentrality);
@@ -96,7 +110,7 @@ figure
 plot(OmniRate1, OmniProbability1, 'b-o', OmniRate2, OmniProbability2, 'k-x', OmniRate3, OmniProbability3, 'r-s', 'LineWidth', 1.5);
 xlabel('Average Achievable Rate');
 ylabel('Detection Probability');
-legend('K=25', 'K=30', 'K=35', 'Location', 'southwest');
+legend('K=4', 'K=6', 'K=8', 'Location', 'southwest');
 grid on
     
 end
