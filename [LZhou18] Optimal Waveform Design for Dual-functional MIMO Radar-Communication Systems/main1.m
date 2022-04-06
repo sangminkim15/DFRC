@@ -39,7 +39,10 @@ for idx = 1 : p.N
     a(idx, 1) = exp(1i * pi * (idx - ceil(p.N/2)) * sin(p.theta(127))); % p.theta = pi/5;
 end
 
-p.rho = [0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9];                     % Weighting Factor
+p.rho = zeros(1, 19);                   % Weighting Factor
+for idx = 1 : length(p.rho)
+    p.rho(idx) = idx / 20;
+end
 
 % Simulation Settings
 p.montecarlo = 1000;
@@ -107,8 +110,8 @@ OmniProbability2 = OmniProbability(:,:,2);
 OmniProbability3 = OmniProbability(:,:,3);
     
 figure
-plot(OmniRate1, OmniProbability1, 'b-o', OmniRate2, OmniProbability2, 'k-x', OmniRate3, OmniProbability3, 'r-s', 'LineWidth', 1.5);
-xlabel('Average Achievable Rate');
+plot(OmniRate1, OmniProbability1, 'b', OmniRate2, OmniProbability2, 'k', OmniRate3, OmniProbability3, 'r', 'LineWidth', 1.5);
+xlabel('Average Achievable Rate (bps/Hz/user)');
 ylabel('Detection Probability');
 legend('K=4', 'K=6', 'K=8', 'Location', 'southwest');
 grid on
