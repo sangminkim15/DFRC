@@ -2,7 +2,7 @@ function [] = main1 ()
 
 % Figure 4
 
-% Parameter Settings
+% Communication Settings
 p.K = 4 : 2 : 8;                        % # of Users
 p.N = 16;                               % # of Antennas per Each Users (ULA)
 p.L = 20;                               % # of Communication Frame
@@ -13,7 +13,7 @@ p.SNR = p.Pt ./ p.N0;
 p.SNRdB = 10 * log(p.SNR) / log(10);    % SNR Settings
 
 % Radar Settings
-p.theta = -pi/2 : pi/180 : pi/2;        % Radar ULA Angle Settings
+p.theta = -pi/2 : pi/180 : pi/2;
 p.theta_target = [-pi*10/180, -pi*5/180, 0, pi*5/180, pi*10/180];
 p.target_DoA = [-pi/3,0,pi/3];
 
@@ -36,16 +36,14 @@ p.falsealarm = 1e-7;
 
 a = zeros(p.N, 1);
 for idx = 1 : p.N
-    a(idx, 1) = exp(1i * pi * (idx - ceil(p.N/2)) * sin(p.theta(127))); % p.theta = pi/5;
+    a(idx, 1) = exp(1i * pi * (idx - ceil(p.N/2)) * sin(p.theta(127)));     % p.theta = pi/5;
 end
 
-p.rho = zeros(1, 19);                   % Weighting Factor
-for idx = 1 : length(p.rho)
-    p.rho(idx) = idx / 20;
-end
+p.rhodB = [-30 -25 -20 -15 -10 -8 -6 -4 -2 -1];                                 % Weighting Factor
+p.rho = 10.^(p.rhodB ./ 10);
 
 % Simulation Settings
-p.montecarlo = 1000;
+p.montecarlo = 100;
 
 OmniRateArray = zeros(p.montecarlo, length(p.rho), length(p.K));
 OmniProbabilityArray = zeros(p.montecarlo, length(p.rho), length(p.K));

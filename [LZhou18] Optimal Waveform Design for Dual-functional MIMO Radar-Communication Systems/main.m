@@ -37,13 +37,20 @@ p.rho = 0.2;                            % Weighting Factor
 % Omni-Directional Beampattern
 OmniRd = (p.Pt / p.N) * eye(p.N, p.N);
 
+% Directional Beampattern
+DirectRd = directbeampattern(p);
+
 % Simulation Settings
 p.montecarlo = 1000;
 
 OmniStrictCapacityArray = zeros(p.montecarlo, length(p.SNRdB));
 OmniTradeoffCapacityArray = zeros(p.montecarlo, length(p.SNRdB));
+DirectStrictCapacityArray = zeros(p.montecarlo, length(p.SNRdB));
+DirectTradeoffCapacityArray = zeros(p.montecarlo, length(p.SNRdB));
 OmniStrictBPArray = zeros(p.montecarlo, length(p.theta));
 OmniTradeoffBPArray = zeros(p.montecarlo, length(p.theta));
+DirectStrictBPArray = zeros(p.montecarlo, length(p.theta));
+DirectTradeoffBPArray = zeros(p.montecarlo, length(p.theta));
 
 for idx = 1 : p.montecarlo
     % Channel Realization
@@ -59,6 +66,7 @@ for idx = 1 : p.montecarlo
     OmniXStrict = sqrt(p.L) * F' * U * eye(p.N, p.L) * V';
 
     % Trade-off Between Radar and Communication Performances
+    % (Omni-Directional)
     Q = p.rho * (H' * H) + (1 - p.rho) * eye(p.N, p.N);
     G = p.rho * H' * S + (1 - p.rho) * OmniXStrict;
 
@@ -69,6 +77,24 @@ for idx = 1 : p.montecarlo
 
     OmniXTradeoff = BisectionSearch(Q, G, lambda_low, lambda_high, p);
     
+    % Optimal Waveform Design (Directional)
+    Fd = chol(DirectRd);
+    [Ud, ~, Vd] = svd(Fd * H' * S);
+    
+    DirectXStrict = sqrt(p.L) * Fd' * Ud * eye(p.N, p.L) * Vd';
+    
+    % Trade-off Between Radar and Communication Performances 
+    % (Directional)
+    Qd = p.rho * (H' * H) + (1 - p.rho) * eye(p.N, p.N);
+    Gd = p.rho * H' * S + (1 - p.rho) * DirectXStrict;
+
+    [Pd, LAMBDAd] = eig(Qd);               % Eigenvalue, Eigenvector of Matrix Q
+
+    lambda_low = - min(diag(LAMBDAd));
+    lambda_high = - min(diag(LAMBDAd)) + sqrt(p.N / p.Pt) * max(max(abs(Pd' * Gd)));
+
+    DirectXTradeoff = BisectionSearch(Qd, Gd, lambda_low, lambda_high, p);
+    
     % Communication Capacity
     for jdx = 1 : length(p.N0dB)
         OmniEStrict = H * OmniXStrict - S;
@@ -76,9 +102,16 @@ for idx = 1 : p.montecarlo
         OmnigammaStrict = 1 ./ (mean(abs(OmniEStrict).^2, 2) + p.N0(jdx));
         OmnigammaTradeoff =  1 ./ (mean(abs(OmniETradeoff).^2, 2) + p.N0(jdx)); 
         
+        DirectEStrict = H * DirectXStrict - S;
+        DirectETradeoff = H * DirectXTradeoff - S;
+        DirectgammaStrict = 1./ (mean(abs(DirectEStrict).^2, 2) + p.N0(jdx));
+        DirectgammaTradeoff =  1 ./ (mean(abs(DirectETradeoff).^2, 2) + p.N0(jdx)); 
+        
         for kdx = 1 : p.K
-            OmniStrictCapacityArray(idx, jdx) = OmniStrictCapacityArray(idx, jdx) + log(1 + OmnigammaStrict(kdx)) / log(2);
-            OmniTradeoffCapacityArray(idx, jdx) = OmniTradeoffCapacityArray(idx, jdx) + log(1 + OmnigammaTradeoff(kdx)) / log(2);
+            OmniStrictCapacityArray(idx, jdx) = OmniStrictCapacityArray(idx, jdx) + log2(1 + OmnigammaStrict(kdx));
+            OmniTradeoffCapacityArray(idx, jdx) = OmniTradeoffCapacityArray(idx, jdx) + log2(1 + OmnigammaTradeoff(kdx));
+            DirectStrictCapacityArray(idx, jdx) = DirectStrictCapacityArray(idx, jdx) + log2(1 + DirectgammaStrict(kdx));
+            DirectTradeoffCapacityArray(idx, jdx) = DirectTradeoffCapacityArray(idx, jdx) + log2(1 + DirectgammaTradeoff(kdx));            
         end
     end
     
@@ -92,6 +125,8 @@ for idx = 1 : p.montecarlo
         
         OmniStrictBPArray(idx, jdx) = a' * (OmniXStrict * OmniXStrict') * a / real(trace(OmniXStrict * OmniXStrict'));
         OmniTradeoffBPArray(idx, jdx) = a' * (OmniXTradeoff * OmniXTradeoff') * a / real(trace(OmniXTradeoff * OmniXTradeoff'));
+        DirectStrictBPArray(idx, jdx) = a' * (DirectXStrict * DirectXStrict') * a / real(trace(DirectXStrict * DirectXStrict'));
+        DirectTradeoffBPArray(idx, jdx) = a' * (DirectXTradeoff * DirectXTradeoff') * a / real(trace(DirectXTradeoff * DirectXTradeoff'));
     end
 end
 
@@ -99,12 +134,17 @@ end
 AWGNCapacity = p.K * log(1 + p.SNR) / log(2);
 OmniStrictCapacity = mean(OmniStrictCapacityArray);
 OmniTradeoffCapacity = mean(OmniTradeoffCapacityArray);
+DirectStrictCapacity = mean(DirectStrictCapacityArray);
+DirectTradeoffCapacity = mean(DirectTradeoffCapacityArray);
 
 figure
 plot(p.SNRdB, AWGNCapacity, 'r--v', p.SNRdB, OmniStrictCapacity, 'k-x', p.SNRdB, OmniTradeoffCapacity, 'k--o', 'LineWidth', 1.5);
+hold on
+plot(p.SNRdB, DirectStrictCapacity, 'b-x', p.SNRdB, DirectTradeoffCapacity, 'b--o', 'LineWidth', 1.5);
+hold off
 xlabel('Transmit SNR (dB)');
 ylabel('Average Achievable Sum Rate (bps/Hz)');
-legend('AWGN Capacity', 'Omni-Strict', 'Omni-Tradeoff (\rho = 0.2)', 'Location', 'northwest');
+legend('AWGN Capacity', 'Omni-Strict', 'Omni-Tradeoff (\rho = 0.2)', 'Directional Strict', 'Directional Tradeoff (\rho = 0.2)', 'Location', 'northwest');
 grid on
 
 % Radar Plot
@@ -113,14 +153,23 @@ OmniStrictBP = 10 .* log10(OmniStrictBP);
 OmniTradeoffBP = real(OmniTradeoffBPArray(1,:));
 OmniTradeoffBP = 10 .* log10(OmniTradeoffBP);
 
+DirectStrictBP = real(DirectStrictBPArray(1,:));
+DirectStrictBP = 10 .* log10(DirectStrictBP);
+DirectTradeoffBP = real(DirectTradeoffBPArray(1,:));
+DirectTradeoffBP = 10 .* log10(DirectTradeoffBP);
+
 p.theta_deg = p.theta * (180/pi);
 
 figure
-plot(p.theta_deg, OmniStrictBP, 'r--', p.theta_deg, OmniTradeoffBP, 'k-', 'LineWidth', 1.5);
+plot(p.theta_deg, OmniStrictBP, '--', p.theta_deg, OmniTradeoffBP, '-', 'LineWidth', 1.5);
+hold on
+plot(p.theta_deg, DirectStrictBP, '--', p.theta_deg, DirectTradeoffBP, '-', 'LineWidth', 1.5);
+hold off
 xlabel('\theta (deg)');
 ylabel('Beampattern');
 xlim([-90 90]);
-legend('Omni-Strict', 'Omni-Tradeoff (\rho = 0.2)');
+ylim([-12 8]);
+legend('Omni-Strict', 'Omni-Tradeoff (\rho = 0.2)', 'Directional Strict', 'Directional Tradeoff (\rho = 0.2)', 'Location', 'south');
 grid on
 
 end
