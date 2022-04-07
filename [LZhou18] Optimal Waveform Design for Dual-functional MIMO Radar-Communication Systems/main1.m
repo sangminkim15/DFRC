@@ -43,7 +43,7 @@ p.rhodB = [-30 -25 -20 -15 -10 -8 -6 -4 -2 -1];                                 
 p.rho = 10.^(p.rhodB ./ 10);
 
 % Simulation Settings
-p.montecarlo = 100;
+p.montecarlo = 1000;
 
 OmniRateArray = zeros(p.montecarlo, length(p.rho), length(p.K));
 OmniProbabilityArray = zeros(p.montecarlo, length(p.rho), length(p.K));

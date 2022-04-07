@@ -39,6 +39,4 @@ for idx = 1 : p.N
     a(idx, 1) = exp(1i * pi * (idx - ceil(p.N/2)) * sin(p.theta(127)));     % p.theta = pi/5;
 end
 
-
-
 end
