@@ -42,6 +42,9 @@ end
 p.rhodB = [-30 -25 -20 -15 -10 -8 -6 -4 -2 -1];                                 % Weighting Factor
 p.rho = 10.^(p.rhodB ./ 10);
 
+% Omni-Directional Beampattern Design
+OmniRd = (p.Pt / p.N) * eye(p.N, p.N);
+
 % Simulation Settings
 p.montecarlo = 1000;
 
@@ -56,9 +59,6 @@ for idx = 1 : p.montecarlo
 
             % Desired Signal Matrix - 4QAM Modulation
             S = (1/sqrt(2)) * ((2 * randi([0 1], p.K(kdx), p.L) - ones(p.K(kdx), p.L)) + 1i * ((2 * randi([0 1], p.K(kdx), p.L) - ones(p.K(kdx), p.L))));
-
-            % Omni-Directional Beampattern Design
-            OmniRd = (p.Pt / p.N) * eye(p.N, p.N);
 
             % Optimal Waveform Design
             F = chol(OmniRd);                   % Cholesky Factorization

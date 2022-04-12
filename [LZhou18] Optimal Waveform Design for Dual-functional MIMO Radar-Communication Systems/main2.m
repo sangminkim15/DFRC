@@ -34,9 +34,63 @@ p.alphadB = -6;
 p.alpha = 10.^(p.alphadB / 10);
 p.falsealarm = 1e-7;
 
-a = zeros(p.N, 1);
-for idx = 1 : p.N
-    a(idx, 1) = exp(1i * pi * (idx - ceil(p.N/2)) * sin(p.theta(127)));     % p.theta = pi/5;
+p.rhodB = [-30 -25 -20 -15 -10 -8 -6 -4 -2 -1];                                 % Weighting Factor
+p.rho = 10.^(p.rhodB ./ 10);
+
+% Directional Beampattern
+DirectRd = directbeampattern(p);
+
+% Simulation Settings
+p.montecarlo = 1000;
+
+DirectBPArray = zeros(p.montecarlo, length(p.rho), length(p.K));
+DirectStrictBPArray = zeros(p.montecarlo, length(p.rho), length(p.K));
+DirectTradeoffBPArray = zeros(p.montecarlo, length(p.rho), length(p.K));
+
+for idx = 1 : p.montecarlo
+    for jdx = 1 : length(p.rho)
+        for kdx = 1 : length(p.K)
+            % Channel Realization
+            H = (1/sqrt(2)) * (randn([p.K(kdx), p.N]) + 1i * randn([p.K(kdx), p.N]));
+
+            % Desired Signal Matrix - 4QAM Modulation
+            S = (1/sqrt(2)) * ((2 * randi([0 1], p.K(kdx), p.L) - ones(p.K(kdx), p.L)) + 1i * ((2 * randi([0 1], p.K(kdx), p.L) - ones(p.K(kdx), p.L))));
+
+            % Optimal Waveform Design
+            F = chol(DirectRd);                 % Cholesky Factorization
+            [U, ~, V] = svd(F * H' * S);        % SVD (singular value decomposition)
+    
+            DirectXStrict = sqrt(p.L) * F' * U * eye(p.N, p.L) * V';
+
+            % Trade-off Between Radar and Communication Performances
+            Q = p.rho(jdx) * (H' * H) + (1 - p.rho(jdx)) * eye(p.N, p.N);
+            G = p.rho(jdx) * H' * S + (1 - p.rho(jdx)) * DirectXStrict;
+            
+            [P, LAMBDA] = eig(Q);               % Eigenvalue, Eigenvector of Matrix Q
+
+            lambda_low = - min(diag(LAMBDA));
+            lambda_high = - min(diag(LAMBDA)) + sqrt(p.N / p.Pt) * max(max(abs(P' * G)));
+
+            DirectXTradeoff = sqrt(p.N) * BisectionSearch(Q, G, lambda_low, lambda_high, p);
+            
+            % Radar Beampattern
+            for ldx = 1 : length(p.theta)
+                a = zeros(p.N, 1);
+        
+                for lldx = 1 : p.N
+                    a(lldx, 1) = exp(1i * pi * (kdx - ceil(p.N / 2)) * sin(p.theta(ldx)));
+                end
+                
+                DirectStrictBPArray(idx, jdx) = a' * (DirectXStrict * DirectXStrict') * a / real(trace(DirectXStrict * DirectXStrict'));
+                DirectTradeoffBPArray(idx, jdx) = a' * (DirectXTradeoff * DirectXTradeoff') * a / real(trace(DirectXTradeoff * DirectXTradeoff'));
+            end
+            
+            
+        end
+    end
 end
+
+
+
 
 end
