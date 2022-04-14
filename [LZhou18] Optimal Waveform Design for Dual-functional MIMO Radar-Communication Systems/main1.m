@@ -94,6 +94,8 @@ for idx = 1 : p.montecarlo
             OmniProbabilityArray(idx, jdx, kdx) = 1 - ncx2cdf(delta, 2, p.noncentrality);
         end
     end
+    clc;
+    disp(['Progress - ',num2str(idx),'/',num2str(p.montecarlo)]);
 end
 
 OmniRate = mean(real(OmniRateArray));

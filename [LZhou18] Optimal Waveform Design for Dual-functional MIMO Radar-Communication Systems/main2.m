@@ -43,8 +43,7 @@ DirectRd = directbeampattern(p);
 % Simulation Settings
 p.montecarlo = 1000;
 
-DirectBPArray = zeros(p.montecarlo, length(p.rho), length(p.K));
-DirectStrictBPArray = zeros(p.montecarlo, length(p.rho), length(p.K));
+DirectRateArray = zeros(p.montecarlo, length(p.rho), length(p.K));
 DirectTradeoffBPArray = zeros(p.montecarlo, length(p.rho), length(p.K));
 
 for idx = 1 : p.montecarlo
@@ -73,24 +72,56 @@ for idx = 1 : p.montecarlo
 
             DirectXTradeoff = sqrt(p.N) * BisectionSearch(Q, G, lambda_low, lambda_high, p);
             
+            % Communication Rate
+            DirectETradeoff = H * (DirectXTradeoff / sqrt(p.N)) - S;
+            DirectgammaTradeoff =  1 ./ (mean(abs(DirectETradeoff).^2, 2) + p.N0);
+            
+            temp = p.K(kdx);
+            for ldx = 1 : temp
+                DirectRateArray(idx, jdx, kdx) = DirectRateArray(idx, jdx, kdx) + log(1 + DirectgammaTradeoff(ldx)) ./ log(2);
+            end
+            DirectRateArray(idx, jdx, kdx) = DirectRateArray(idx, jdx, kdx) / p.K(kdx);
+            
             % Radar Beampattern
             for ldx = 1 : length(p.theta)
+                DBP = zeros(length(p.theta), 1);
+                DTBP = zeros(length(p.theta), 1);
+                
                 a = zeros(p.N, 1);
         
                 for lldx = 1 : p.N
                     a(lldx, 1) = exp(1i * pi * (kdx - ceil(p.N / 2)) * sin(p.theta(ldx)));
                 end
                 
-                DirectStrictBPArray(idx, jdx) = a' * (DirectXStrict * DirectXStrict') * a / real(trace(DirectXStrict * DirectXStrict'));
-                DirectTradeoffBPArray(idx, jdx) = a' * (DirectXTradeoff * DirectXTradeoff') * a / real(trace(DirectXTradeoff * DirectXTradeoff'));
+                DBP(ldx) = a' * (DirectRd * DirectRd') * a / real(trace(DirectRd * DirectRd'));
+                DTBP(ldx) = a' * (DirectXTradeoff * DirectXTradeoff') * a / real(trace(DirectXTradeoff * DirectXTradeoff'));
             end
             
-            
+            % Radar Beampattern MSE
+            DirectTradeoffBPArray(idx, jdx, kdx) = norm(DTBP - DBP, 2).^2;
         end
     end
+    clc;
+    disp(['Progress - ',num2str(idx),'/',num2str(p.montecarlo)]);
 end
 
+DirectRate = mean(real(DirectRateArray));
 
+DirectRate1 = DirectRate(:,:,1);
+DirectRate2 = DirectRate(:,:,2);
+DirectRate3 = DirectRate(:,:,3);
 
+DirectTradeoffBP = real(DirectTradeoffBPArray(1,:,:));
+DirectTradeoffBP = 10 * log10(DirectTradeoffBP);
+DirectTradeoffBP1 = DirectTradeoffBP(:,:,1);
+DirectTradeoffBP2 = DirectTradeoffBP(:,:,2);
+DirectTradeoffBP3 = DirectTradeoffBP(:,:,3);
 
+figure
+plot(DirectRate1, DirectTradeoffBP1, 'b', DirectRate2, DirectTradeoffBP2, 'k', DirectRate3, DirectTradeoffBP3, 'r', 'LineWidth', 1.5);
+xlabel('Average Achievable Rate (bps/Hz/user)');
+ylabel('Average MSE (dB)');
+legend('K=4', 'K=6', 'K=8', 'Location', 'southeast');
+grid on
+    
 end

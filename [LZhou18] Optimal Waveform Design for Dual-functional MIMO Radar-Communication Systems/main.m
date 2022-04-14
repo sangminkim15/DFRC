@@ -128,6 +128,8 @@ for idx = 1 : p.montecarlo
         DirectStrictBPArray(idx, jdx) = a' * (DirectXStrict * DirectXStrict') * a / real(trace(DirectXStrict * DirectXStrict'));
         DirectTradeoffBPArray(idx, jdx) = a' * (DirectXTradeoff * DirectXTradeoff') * a / real(trace(DirectXTradeoff * DirectXTradeoff'));
     end
+    clc;
+    disp(['Progress - ',num2str(idx),'/',num2str(p.montecarlo)]);
 end
 
 % Communication Plot
